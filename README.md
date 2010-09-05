@@ -1,14 +1,18 @@
 I did this very quick and dirty hack to get tweets to png. Mainly motivated
 by the Github wiki's restrictions of what can be embedded there.
 
-But it works, check it out: http://tweetpong.appspot.com/23019320509.png
+But it works:
+
+[[http://tweetpong.appspot.com/23019320509.png]]
+
+http://tweetpong.appspot.com/23019320509.png
 
 Replace the id on the url with any tweet id and (if you're lucky) you'll get
 a nice png.
 
-FORKERS:
+### FORKERS
 
-You need to create a secrets.py like
+You need to create a `secrets.py` like
     CONSUMER_KEY = "GQlpCF6b.."
     CONSUMER_SECRET = ".."
     CLIENT_TOKEN = "1525313.."
