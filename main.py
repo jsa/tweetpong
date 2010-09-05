@@ -116,6 +116,9 @@ def _gen_shot(tweet_id):
     tmpl = images.Image(tmpl_data)
     t_width, t_height = tmpl.width, tmpl.height
 
+    # This is just a white bar 4x30, to do fills
+    bar = open('bar.png', 'rb').read()
+
     while words:
         logging.debug("Words left: %r" % words)
         r = (1, len(words))
@@ -172,7 +175,10 @@ def _gen_shot(tweet_id):
                     before = ' '.join(part for c, part in colors[:i])
                     if before:
                         offset = images.Image(_tweet_line(before)).width + 5
-                    composition.append((part, offset, 0, 1., images.TOP_LEFT))
+                    part_w = images.Image(part).width
+                    composition += [(bar, offset - 3, 0, 1., images.TOP_LEFT),
+                                    (bar, offset + part_w - 1, 0, 1., images.TOP_LEFT),
+                                    (part, offset, 0, 1., images.TOP_LEFT)]
 
             # Re-compose line
             tmp = images.Image(line_img)
