@@ -1,5 +1,5 @@
 application: tweetpong
-version: 13
+version: 15
 runtime: python
 api_version: 1
 
@@ -7,6 +7,10 @@ handlers:
 - url: /
   static_files: index.html
   upload: index.html
+
+- url: /favicon.ico
+  static_files: favicon.ico
+  upload: favicon.ico
 
 - url: .*
   script: main.py
