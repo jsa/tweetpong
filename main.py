@@ -108,7 +108,7 @@ def _gen_shot(tweet_id):
                                  'chst=d_text_outline&chld=000000|24|l|f7f7f7|_|%s'
                                  '&chf=bg,s,ffffff' % quote(' '.join(words[0:mid])))
             except ChartAPIException, e:
-                logging.exception(e)
+                logging.debug(e, exc_info=1)
                 if e.response.status_code != 400:
                     raise
                 # Otherwise text was probably just too wide
@@ -152,7 +152,7 @@ def _gen_shot(tweet_id):
 
     # Generate some more charts...
     created = chart_img('http://chart.apis.google.com/chart?'
-                        'chst=d_text_outline&chld=b0b0b0|10|l|ffffff|_|%s'
+                        'chst=d_text_outline&chld=a0a0a0|10|l|ffffff|_|%s'
                         '&chf=bg,s,ffffff' % quote(created_str.encode('utf-8')))
 
     screen_name = chart_img('http://chart.apis.google.com/chart?'
