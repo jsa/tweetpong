@@ -1,7 +1,7 @@
 I did this very quick and dirty hack to get tweets to png. Mainly motivated
 by the Github wiki's restrictions of what can be embedded there.
 
-But it works, check it out: http://tweetpong.appspot.com/22915523028.png
+But it works, check it out: http://tweetpong.appspot.com/23019320509.png
 
 Replace the id on the url with any tweet id and (if you're lucky) you'll get
 a nice png.
