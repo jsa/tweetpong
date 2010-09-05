@@ -175,15 +175,15 @@ class ServeHandler(webapp.RequestHandler):
         # Generate some more charts...
         created = chart_img('http://chart.apis.google.com/chart?'
                             'chst=d_text_outline&chld=b0b0b0|10|l|ffffff|_|%s'
-                            '&chf=bg,s,ffffff' % quote(created_str))
+                            '&chf=bg,s,ffffff' % quote(created_str.encode('utf-8')))
 
         screen_name = chart_img('http://chart.apis.google.com/chart?'
                                 'chst=d_text_outline&chld=0000ff|24|l|ffffff|_|%s'
-                                '&chf=bg,s,ffffff' % quote(user.get('screen_name', '')))
+                                '&chf=bg,s,ffffff' % quote(user.get('screen_name', '').encode('utf-8')))
 
         name = chart_img('http://chart.apis.google.com/chart?'
                          'chst=d_text_outline&chld=000000|13|l|ffffff|_|%s'
-                         '&chf=bg,s,ffffff' % quote(user.get('name', '')))
+                         '&chf=bg,s,ffffff' % quote(user.get('name', '').encode('utf-8')))
 
         # Start generating the actual tweetshot
 
