@@ -1,4 +1,5 @@
 import datetime
+from itertools import groupby
 import logging
 import os
 import re
@@ -14,6 +15,11 @@ from webob import _parse_date
 import oauth
 import secrets
 
+
+COLOR_WORDS = tuple((re.compile(pattern), color) for pattern, color in (
+    (r'https?://', '0000ff'),
+    (r'[#@]', '0000ff'),
+))
 
 class CTzinfo(datetime.tzinfo):
     def utcoffset(self, dt): return datetime.timedelta(hours=-7)
@@ -49,6 +55,11 @@ def _make_twitter_request(url):
                                  'http://%s/callback/' % os.environ['SERVER_NAME'])
 
     return client.make_request(url, token=secrets.CLIENT_TOKEN, secret=secrets.CLIENT_SECRET)
+
+def first(iterable, default=None):
+    for i in iterable:
+        return i
+    return default
 
 def _gen_shot(tweet_id):
     tweet_rs = _make_twitter_request('http://api.twitter.com/1/statuses/show/%d.json' % tweet_id)
@@ -90,6 +101,12 @@ def _gen_shot(tweet_id):
 
     # Generate Google chart text boxes for all text, one for each line
     # (I want to adjust the line height)
+
+    def _tweet_line(text, color='000000'):
+        return chart_img('http://chart.apis.google.com/chart?'
+                        'chst=d_text_outline&chld=%s|24|l|f7f7f7|_|%s'
+                        '&chf=bg,s,ffffff' % (color, quote(text)))
+
     while words:
         logging.debug("Words left: %r" % words)
         r = (1, len(words))
@@ -104,13 +121,11 @@ def _gen_shot(tweet_id):
 
             line = None
             try:
-                line = chart_img('http://chart.apis.google.com/chart?'
-                                 'chst=d_text_outline&chld=000000|24|l|f7f7f7|_|%s'
-                                 '&chf=bg,s,ffffff' % quote(' '.join(words[0:mid])))
+                line = _tweet_line(' '.join(words[0:mid]))
             except ChartAPIException, e:
                 logging.debug(e, exc_info=1)
                 if e.response.status_code != 400:
-                    raise
+                    raise ServerError(500, "Chart API error %d" % e.response.status_code)
                 # Otherwise text was probably just too wide
 
             # 600px wide, 25px margin
@@ -126,6 +141,29 @@ def _gen_shot(tweet_id):
 
         if not line_img:
             raise ServerError(500, "Failed to process tweet")
+
+        # Now that we have a good line, let's see if we need to apply
+        # some colors. This is freaking awful...
+        colors = [(w, first((c for p, c in COLOR_WORDS if p.match(w))))
+                  for w in words[:mid]]
+        colors = [(c, ' '.join(w for w, _c in part))
+                   for c, part in groupby(colors, lambda (_w, c): c)]
+        if len(colors) > 1 or colors[0][0]:
+            offset = 0
+            composition = [(line_img, 0, 0, 1., images.TOP_LEFT)]
+            for i, (color, part) in enumerate(colors):
+                if color:
+                    part = _tweet_line(part, color)
+                    offset = 0
+                    before = ' '.join(part for c, part in colors[:i])
+                    if before:
+                        offset = images.Image(_tweet_line(before)).width + 5
+                    composition.append((part, offset, 0, 1., images.TOP_LEFT))
+
+            # Re-compose line
+            tmp = images.Image(line_img)
+            line_img = images.composite(composition, tmp.width, tmp.height)
+
         line_imgs.append(line_img)
 
         words = words[mid:]
