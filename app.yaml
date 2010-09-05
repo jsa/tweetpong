@@ -1,5 +1,5 @@
 application: tweetpong
-version: 5
+version: 13
 runtime: python
 api_version: 1
 
@@ -10,6 +10,14 @@ handlers:
 
 - url: .*
   script: main.py
+
+error_handlers:
+  - file: error.png
+    mime_type: image/png
+
+  - error_code: over_quota
+    file: overquota.png
+    mime_type: image/png
 
 skip_files: |
  ^(.*/)?(
