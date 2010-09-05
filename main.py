@@ -107,6 +107,15 @@ def _gen_shot(tweet_id):
                         'chst=d_text_outline&chld=%s|24|l|f7f7f7|_|%s'
                         '&chf=bg,s,ffffff' % (color, quote(text)))
 
+    MARGIN, PADDING, LINE = 50, 25, 30
+    MARGINF, PADDINGF, LINEF = map(float, (MARGIN, PADDING, LINE))
+
+    # Load background image to get dimensions
+
+    tmpl_data = open('tweet-bg.png', 'rb').read()
+    tmpl = images.Image(tmpl_data)
+    t_width, t_height = tmpl.width, tmpl.height
+
     while words:
         logging.debug("Words left: %r" % words)
         r = (1, len(words))
@@ -129,7 +138,7 @@ def _gen_shot(tweet_id):
                 # Otherwise text was probably just too wide
 
             # 600px wide, 25px margin
-            if not line or images.Image(line).width > 550:
+            if not line or images.Image(line).width > t_width - 2 * PADDING:
                 r = (r[0], mid)
             else:
                 r = (mid, r[1])
@@ -203,13 +212,8 @@ def _gen_shot(tweet_id):
 
     # Start generating the actual tweetshot
 
-    MARGIN, PADDING, LINE = 50, 25, 30
-    MARGINF, PADDINGF, LINEF = map(float, (MARGIN, PADDING, LINE))
     lines = len(line_imgs)
 
-    tmpl_data = open('tweet-bg.png', 'rb').read()
-    tmpl = images.Image(tmpl_data)
-    t_width, t_height = tmpl.width, tmpl.height
     width, height = t_width + 2 * MARGIN, t_height + 2 * MARGIN + (lines - 1) * LINE
 
     # Damn the rounded corners; need to seriously slice and re-compose
