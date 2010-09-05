@@ -4,7 +4,7 @@ import os
 import re
 from urllib2 import quote
 
-from google.appengine.api import images, urlfetch
+from google.appengine.api import images, memcache, urlfetch
 from google.appengine.ext import webapp
 from google.appengine.ext.webapp.util import run_wsgi_app
 
@@ -60,10 +60,19 @@ class ServeHandler(webapp.RequestHandler):
         self.response.out.write(msg)
 
     def get(self, tweet_id):
-        try:
-            self._gen_shot(int(tweet_id))
-        except ChartAPIException, e:
-            self.error_msg(500, e.message)
+        img = memcache.get(tweet_id)
+        if not img:
+            try:
+                img = self._gen_shot(int(tweet_id))
+                memcache.set(tweet_id, img, time=24 * 60 * 60)
+            except ChartAPIException, e:
+                logging.exception(e)
+                self.error_msg(500, e.message)
+                return
+
+        self.response.headers['Content-Type'] = 'image/png'
+        self.response.headers['Cache-Control'] = 'public, max-age=%d' % (24 * 60 * 60)
+        self.response.out.write(img)
 
     def _gen_shot(self, tweet_id):
         client = oauth.TwitterClient(secrets.CONSUMER_KEY,
@@ -283,9 +292,7 @@ class ServeHandler(webapp.RequestHandler):
             tweetshot = (images.composite([tweetshot] + batch, width, height),
                          0, 0, 1., images.TOP_LEFT)
 
-        self.response.headers['Content-Type'] = 'image/png'
-        self.response.headers['Cache-Control'] = 'max-age=%d' % (24 * 60 * 60)
-        self.response.out.write(tweetshot[0])
+        return tweetshot[0]
 
 
 def main():
