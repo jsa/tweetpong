@@ -5,7 +5,7 @@ But it works (if you see image here):
 
 ![Some tweet](http://tweetpong.appspot.com/23019320509.png)
 
-[http://tweetpong.appspot.com/23019320509.png](http://tweetpong.appspot.com/23019320509.png)
+See it in action at [http://tweetpong.appspot.com/](http://tweetpong.appspot.com/)
 
 Replace the id on the url with any tweet id and (if you're lucky) you'll get
 a nice png.
