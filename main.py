@@ -284,8 +284,7 @@ class ServeHandler(webapp.RequestHandler):
                          0, 0, 1., images.TOP_LEFT)
 
         self.response.headers['Content-Type'] = 'image/png'
-#        self.response.headers['Cache-Control'] = 'max-age=%d' % (7 * 24 * 60 * 60)
-        self.response.headers['Cache-Control'] = 'no-store'
+        self.response.headers['Cache-Control'] = 'max-age=%d' % (24 * 60 * 60)
         self.response.out.write(tweetshot[0])
 
 
