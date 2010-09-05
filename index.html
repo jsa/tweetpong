@@ -22,10 +22,16 @@
 			For feedback, bugs etc. <a href="http://twitter.com/turbofunctor">tweet me</a>.
 			You may use this service freely for embedding tweets everywhere where you can't or
 			don't want to use <a href="http://media.twitter.com/blackbird-pie/">Blackbird Pie</a>.
+			<br />
+			Here's a bookmarklet <a href="javascript:var l=document.location;if(/^http:\/\/twitter.com\/[^\/]+\/status\/\d+$/.exec(l)){document.location='http://tweetpong.appspot.com/?t='+l}else{alert('Not on a tweet page');}">Tweetpong</a>
+			for easy png'ing. Drag it to your bookmarks bar and click on a tweet page,
+			it takes you here.
 		</p>
 		<p>
 			The service is running on <a href="http://code.google.com/appengine/">AppEngine</a>
 			so it can handle quite a lot of traffic.
+		</p>
+		<p>
 		</p>
 		<a href="http://github.com/jsa/tweetpong"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_white_ffffff.png" alt="Fork me on GitHub" /></a>
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
@@ -33,7 +39,7 @@
 		var host = window.location.host;
 		$('form').submit(function() {
 			var status = $('span.status').empty(),
-				twitterUrl = $('input').val();
+				twitterUrl = $('[type=text]').val();
 			var match = /^.*\/(\d+)$/.exec(twitterUrl);
 			if (match) {
 				var pngUrl = 'http://' + host + '/' + match[1] + '.png';
@@ -48,6 +54,11 @@
 			}
 			return false;
 		});
+		var tweet = /\?t=([^&]+)/.exec(window.location.search);
+		if (tweet) {
+			$('[type=text]').val(tweet[1]);
+			$('form').submit();
+		}
 		</script>
 	</body>
 </html>
