@@ -10,7 +10,7 @@ See it in action at [http://tweetpong.appspot.com/](http://tweetpong.appspot.com
 Replace the id on the url with any tweet id and (if you're lucky) you'll get
 a nice png.
 
-Implementation note: Generates texts with [Google Chart API](http://code.google.com/apis/chart/docs/gallery/dynamic_icons.html#outlined_text)
+Implementation note: Renders texts with [Google Chart API](http://code.google.com/apis/chart/docs/gallery/dynamic_icons.html#outlined_text)
 
 ### FORKERS
 
