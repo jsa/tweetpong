@@ -275,8 +275,7 @@ def _gen_shot(tweet_id):
 
 class AuthHandler(webapp.RequestHandler):
     def get(self):
-        client = oauth.TwitterClient(secrets.CONSUMER_KEY,
-                                     secrets.CONSUMER_SECRET,
+        client = oauth.TwitterClient(secrets.CONSUMER_KEY, secrets.CONSUMER_SECRET,
                                      'http://%s/callback/' % os.environ['SERVER_NAME'])
         self.redirect(client.get_authorization_url())
 
@@ -303,14 +302,17 @@ class ServeHandler(webapp.RequestHandler):
             try:
                 img = _gen_shot(int(tweet_id))
                 memcache.set(tweet_id, img, time=24 * 60 * 60)
-                memcache.set('latest', tweet_id)
             except ChartAPIException, e:
                 logging.exception(e)
-                self.error_msg(500, e.message)
+                self.redirect('http://chart.apis.google.com/chart?'
+                               'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
+                               '&chf=bg,s,ffffff' % quote(e.message.encode('utf-8')))
                 return
             except ServerError, e:
                 logging.exception(e)
-                self.error_msg(e.status, e.message)
+                self.redirect('http://chart.apis.google.com/chart?'
+                               'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
+                               '&chf=bg,s,ffffff' % quote(e.message.encode('utf-8')))
                 return
 
         self.response.headers['Content-Type'] = 'image/png'
@@ -318,23 +320,11 @@ class ServeHandler(webapp.RequestHandler):
         self.response.out.write(img)
 
 
-class IndexHandler(webapp.RequestHandler):
-    def get(self):
-        latest = memcache.get('latest')
-        if latest:
-            h = ServeHandler()
-            h.initialize(self.request, self.response)
-            h.get(str(latest))
-            self.response.headers['Cache-Control'] = 'no-store'
-        else:
-            self.error(404)
-
 def main():
     application = webapp.WSGIApplication([
           ('/(\d+)\.png', ServeHandler),
           ('/auth/', AuthHandler),
           ('/callback/', CallbackHandler),
-          ('/', IndexHandler),
           ], debug=True)
     run_wsgi_app(application)
 

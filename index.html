@@ -1,0 +1,43 @@
+<html>
+	<head>
+		<title>Tweets as PNG | Tweetpong</title>
+	</head>
+	<body>
+		<form action="/">
+			<p>
+				Enter tweet url:
+				<input type="text" size="60" />
+				<span class="status"></span>
+			</p>
+			<p><input type="submit" value="Png"></input></p>
+		</form>
+		<p>Grab link: <a href="/23027624415.png" class="pong">http://tweetpong.appspot.com/23027624415.png</a></p>
+		<p>
+			<a href="http://twitter.com/turbofunctor/status/23027624415">
+				<img src="http://tweetpong.appspot.com/23027624415.png">
+			</a>
+		</p>
+		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
+		<script type="text/javascript">
+		var host = window.location.host;
+		$('form').submit(function() {
+			var status = $('span.status').empty(),
+				twitterUrl = $('input').val();
+			var match = /^.*\/(\d+)$/.exec(twitterUrl);
+			if (match) {
+				var pngUrl = 'http://' + host + '/' + match[1] + '.png';
+				status.text("Loading...");
+				setTimeout(function() { status.empty() }, 1000);
+				$('img').attr('src', pngUrl)
+				        .parents('a').attr('href', twitterUrl);
+				// gaah, _had_ to put a class there... ;)
+				$('a.pong').attr('href', pngUrl)
+				           .text(pngUrl);
+			} else {
+				status.text("Url has to be in format http://twitter.com/turbofunctor/status/23052820725");
+			}
+			return false;
+		});
+		</script>
+	</body>
+</html>
