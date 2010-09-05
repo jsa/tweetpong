@@ -104,7 +104,7 @@ def _gen_shot(tweet_id):
 
     def _tweet_line(text, color='000000'):
         return chart_img('http://chart.apis.google.com/chart?'
-                        'chst=d_text_outline&chld=%s|24|l|f7f7f7|_|%s'
+                        'chst=d_text_outline&chld=%s|23|l|f7f7f7|_|%s'
                         '&chf=bg,s,ffffff' % (color, quote(text)))
 
     MARGIN, PADDING, LINE = 50, 25, 30
@@ -136,6 +136,11 @@ def _gen_shot(tweet_id):
                 if e.response.status_code != 400:
                     raise ServerError(500, "Chart API error %d" % e.response.status_code)
                 # Otherwise text was probably just too wide
+
+            if mid == 1:
+                # If just one word, accept however long it might be
+                line_img = line
+                break
 
             # 600px wide, 25px margin
             if not line or images.Image(line).width > t_width - 2 * PADDING:
@@ -305,6 +310,10 @@ def _gen_shot(tweet_id):
                                                        (2, 1, 1.), (2, 2, 1.), (1, 2, 1.))],
                          _corners(),
                          [])
+
+    # Would be nice to apply this, but composite doesn't merge pixels (it
+    # just overwrites with zero-alphas)
+#    bg_color = 0xff000000 + int(user.get('profile_background_color', '0'), 16)
 
     tweetshot = components.pop(0)
     while components:
