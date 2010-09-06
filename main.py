@@ -369,22 +369,8 @@ class TweetHandler(webapp.RequestHandler):
     def get(self, tweet_id, width=None):
         img = memcache.get(tweet_id)
         if not img:
-            try:
-                img = _gen_shot(int(tweet_id))
-                memcache.set(tweet_id, img, time=24 * 60 * 60)
-            except (ServerError, ChartAPIException, images.BadImageError), e:
-                logging.warning(e, exc_info=1)
-                msg = "Tweetpong: %s" % (e.message or "Failed to process tweet :(")
-                self.redirect('http://chart.apis.google.com/chart?'
-                              'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
-                              '&chf=bg,s,ffffff' % quote(msg.encode('utf-8')))
-                return
-            except Exception, e:
-                logging.exception(e)
-                self.redirect('http://chart.apis.google.com/chart?'
-                              'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
-                              '&chf=bg,s,ffffff' % "Tweetpong: Failed to process tweet ):")
-                return
+            img = _gen_shot(int(tweet_id))
+            memcache.set(tweet_id, img, time=24 * 60 * 60)
 
         if width:
             # Not memcaching these, Google's proxy cache *should* handle.
@@ -396,6 +382,19 @@ class TweetHandler(webapp.RequestHandler):
         self.response.headers['Content-Type'] = 'image/png'
         self.response.headers['Cache-Control'] = 'public, max-age=%d' % (24 * 60 * 60)
         self.response.out.write(img)
+
+    def handle_exception(self, exc, debug_mode):
+        if isinstance(exc, (ServerError, ChartAPIException, images.BadImageError)):
+            logging.warning(exc, exc_info=1)
+            msg = "Tweetpong: %s" % (exc.message or "Failed to process tweet :(")
+            self.redirect('http://chart.apis.google.com/chart?'
+                          'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
+                          '&chf=bg,s,ffffff' % quote(msg.encode('utf-8')))
+        else:
+            logging.exception(exc)
+            self.redirect('http://chart.apis.google.com/chart?'
+                          'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
+                          '&chf=bg,s,ffffff' % "Tweetpong: Failed to process tweet ):")
 
 
 class RandomHandler(TweetHandler):
