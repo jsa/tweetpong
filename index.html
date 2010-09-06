@@ -3,17 +3,25 @@
 		<title>Tweets as PNG | Tweetpong</title>
 		<style type="text/css">
 		p { max-width: 600px; }
+		span.status { display: block; height: 20px; }
 		</style>
 	</head>
 	<body>
-		<form action="/">
+		<form action="#">
 			<p>
 				Enter tweet url:
 				<input type="text" size="60" />
+				<input type="submit" value="Png"></input>
 				<br />
+				<input type="radio" name="width" value="" checked="checked">full</input>
+				| <input type="radio" name="width" value="600">600px</input>
+				| <input type="radio" name="width" value="500">500px</input>
+				| <input type="radio" name="width" value="400">400px</input>
+				| <input type="radio" name="width" value="300">300px</input>
+			</p>
+			<p>
 				<span class="status"></span>
 			</p>
-			<p><input type="submit" value="Png"></input></p>
 		</form>
 		<p>Grab link: <a href="/23019320509.png" class="pong">http://tweetpong.appspot.com/23019320509.png</a></p>
 		<p>
@@ -37,17 +45,24 @@
 		<a href="http://github.com/jsa/tweetpong"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_white_ffffff.png" alt="Fork me on GitHub" /></a>
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
 		<script type="text/javascript">
-		var host = window.location.host;
-		$('form').submit(function() {
+		var form = $('form'),
+		    host = window.location.host;
+		form.submit(function() {
 			var status = $('span.status').empty(),
 				twitterUrl = $('[type=text]').val();
 			var match = /^.*\/(\d+)$/.exec(twitterUrl);
 			if (match) {
-				var pngUrl = 'http://' + host + '/' + match[1] + '.png';
+				var width = form.find('[name=width]:checked').val(),
+				    pngUrl = null;
+				if (!width) {
+					pngUrl = 'http://' + host + '/' + match[1] + '.png';
+				} else {
+					pngUrl = 'http://' + host + '/' + match[1] + '-' + width + '.png';
+				}
 				status.text("Loading...");
 				setTimeout(function() { status.empty() }, 1000);
 				$('img.pong').attr('src', pngUrl)
-				        .parents('a').attr('href', twitterUrl);
+				             .parents('a').attr('href', twitterUrl);
 				$('a.pong').attr('href', pngUrl)
 				           .text(pngUrl);
 			} else {
@@ -55,10 +70,11 @@
 			}
 			return false;
 		});
+		$('[type=radio]').change(function() { form.submit(); });
 		var tweet = /\?t=([^&]+)/.exec(window.location.search);
 		if (tweet) {
 			$('[type=text]').val(tweet[1]);
-			$('form').submit();
+			form.submit();
 		}
 		</script>
 	</body>

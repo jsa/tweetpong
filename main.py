@@ -213,13 +213,16 @@ def _gen_shot(tweet_id):
                         'chst=d_text_outline&chld=a0a0a0|10|l|ffffff|_|%s'
                         '&chf=bg,s,ffffff' % quote(created_str.encode('utf-8')))
 
-    screen_name = chart_img('http://chart.apis.google.com/chart?'
-                            'chst=d_text_outline&chld=0000ff|24|l|ffffff|_|%s'
-                            '&chf=bg,s,ffffff' % quote(user.get('screen_name', '').encode('utf-8')))
+    screen_name = user.get('screen_name', '')
+    screen_name_img = chart_img('http://chart.apis.google.com/chart?'
+                                'chst=d_text_outline&chld=0000ff|24|l|ffffff|_|%s'
+                                '&chf=bg,s,ffffff' % quote(screen_name.encode('utf-8')))
 
-    name = chart_img('http://chart.apis.google.com/chart?'
-                     'chst=d_text_outline&chld=000000|13|l|ffffff|_|%s'
-                     '&chf=bg,s,ffffff' % quote(user.get('name', '').encode('utf-8')))
+    name, name_img = user.get('name', ''), None
+    if name and name != screen_name:
+        name_img = chart_img('http://chart.apis.google.com/chart?'
+                             'chst=d_text_outline&chld=000000|13|l|ffffff|_|%s'
+                             '&chf=bg,s,ffffff' % quote(name.encode('utf-8')))
 
     # Start generating the actual tweetshot
 
@@ -284,8 +287,10 @@ def _gen_shot(tweet_id):
                   + [(line, MARGIN + PADDING, MARGIN + PADDING + n * LINE, 1., images.TOP_LEFT)
                      for n, line in enumerate(line_imgs)] \
                   + [(created, MARGIN + PADDING, footer_y + 3, 1., images.TOP_LEFT),
-                     (screen_name, MARGIN + PADDING + 48 + 20, footer_y + 49, 1., images.TOP_LEFT),
-                     (name, MARGIN + PADDING + 48 + 20, footer_y + 49 + 26, 1., images.TOP_LEFT)]
+                     (screen_name_img, MARGIN + PADDING + 48 + 20, footer_y + 49, 1., images.TOP_LEFT)]
+
+    if name_img:
+        components.append((name_img, MARGIN + PADDING + 48 + 20, footer_y + 49 + 26, 1., images.TOP_LEFT))
 
     # Add profile picture
 
@@ -347,13 +352,13 @@ class CallbackHandler(webapp.RequestHandler):
         logging.debug("user_info: %r" % (user_info,))
 
 
-class ServeHandler(webapp.RequestHandler):
+class TweetHandler(webapp.RequestHandler):
 
     def error_msg(self, code, msg):
-        super(ServeHandler, self).error(code)
+        super(TweetHandler, self).error(code)
         self.response.out.write(msg)
 
-    def get(self, tweet_id):
+    def get(self, tweet_id, width=None):
         img = memcache.get(tweet_id)
         if not img:
             try:
@@ -372,6 +377,13 @@ class ServeHandler(webapp.RequestHandler):
                                '&chf=bg,s,ffffff' % quote(e.message.encode('utf-8')))
                 return
 
+        if width:
+            # Not memcaching these, Google's proxy cache *should* handle.
+            # (Waiting for it to kick in; the basic memcaching is there just
+            # because it's not working.)
+            width = min(max(int(width), 300), images.Image(img).width)
+            img = images.resize(img, width)
+
         self.response.headers['Content-Type'] = 'image/png'
         self.response.headers['Cache-Control'] = 'public, max-age=%d' % (24 * 60 * 60)
         self.response.out.write(img)
@@ -379,7 +391,8 @@ class ServeHandler(webapp.RequestHandler):
 
 def main():
     application = webapp.WSGIApplication([
-          ('/(\d+)\.png', ServeHandler),
+          ('/(\d+)\.png', TweetHandler),
+          ('/(\d+)-(\d+)\.png', TweetHandler),
           ('/auth/', AuthHandler),
           ('/callback/', CallbackHandler),
           ], debug=True)

@@ -1,7 +1,10 @@
 application: tweetpong
-version: 15
+version: 18
 runtime: python
 api_version: 1
+
+derived_file_type:
+- python_precompiled
 
 handlers:
 - url: /
