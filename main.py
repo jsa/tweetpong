@@ -18,8 +18,8 @@ import secrets
 
 
 COLOR_WORDS = tuple((re.compile(pattern), color) for pattern, color in (
-    (r'https?://', '0000ff'),
-    (r'[#@]', '0000ff'),
+    (r'https?://.+', '0000ff'),
+    (r'[#@].+', '0000ff'),
 ))
 
 class CTzinfo(datetime.tzinfo):
