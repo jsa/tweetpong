@@ -3,7 +3,7 @@ by the Github wiki's restrictions of what can be embedded there.
 
 But it works (if you see image here):
 
-![Some tweet](http://tweetpong.appspot.com/23019320509.png)
+![Some tweet](http://tweetpong.appspot.com/23019320509-500.png)
 
 See it in action at [http://tweetpong.appspot.com/](http://tweetpong.appspot.com/)
 
