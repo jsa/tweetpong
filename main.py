@@ -86,7 +86,7 @@ def _gen_shot(tweet_id):
 
     user = tweet.get('user') or {}
     bg_rpc = prof_rpc = None
-    bg = user.get('profile_background_image_url', None)
+    bg = user.get('profile_use_background_image', False) and user.get('profile_background_image_url', None)
     if bg:
         bg_rpc = urlfetch.create_rpc()
         urlfetch.make_fetch_call(bg_rpc, bg)
@@ -264,17 +264,16 @@ def _gen_shot(tweet_id):
 
     components = []
 
-    if user.get('profile_use_background_image', False):
-        bg_rs = bg_rpc and bg_rpc.get_result()
-        if bg_rs:
-            if bg_rs.status_code == 200:
-                bg_img = images.Image(bg_rs.content)
-                components += [(bg_rs.content, x, y, 1., images.TOP_LEFT)
-                               for x in range(0, width, bg_img.width)
-                               for y in range(0, height, bg_img.height)]
-            else:
-                logging.warning("Background download failed %d: %r"
-                                % (bg_rs.status_code, bg_rs.content))
+    bg_rs = bg_rpc and bg_rpc.get_result()
+    if bg_rs:
+        if bg_rs.status_code == 200:
+            bg_img = images.Image(bg_rs.content)
+            components += [(bg_rs.content, x, y, 1., images.TOP_LEFT)
+                           for x in range(0, width, bg_img.width)
+                           for y in range(0, height, bg_img.height)]
+        else:
+            logging.warning("Background download failed %d: %r"
+                            % (bg_rs.status_code, bg_rs.content))
 
     # Then add tweet box and texts
 
