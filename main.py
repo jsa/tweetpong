@@ -87,7 +87,7 @@ def _gen_shot(tweet_id):
         raise ServerError(404, "No tweet text")
 
     # Need to escape pipes for chart API
-    text = unicode(text).replace('|', '¦')
+    text = text.replace('|', u'¦')
 
     user = tweet.get('user') or {}
     bg_rpc = prof_rpc = None
@@ -103,7 +103,7 @@ def _gen_shot(tweet_id):
         urlfetch.make_fetch_call(prof_rpc, profile)
         logging.debug("Loading profile picture from %r" % profile)
 
-    words = text.encode('utf-8').split()
+    words = text.split()
     line_imgs = []
 
     # Generate Google chart text boxes for all text, one for each line
@@ -112,7 +112,7 @@ def _gen_shot(tweet_id):
     def _tweet_line(text, color='000000'):
         return chart_img('http://chart.apis.google.com/chart?'
                          'chst=d_text_outline&chld=%s|23|l|f7f7f7|_|%s'
-                         '&chf=bg,s,ffffff' % (color, quote(text)))
+                         '&chf=bg,s,ffffff' % (color, quote(text.encode('utf-8'))))
 
     MARGIN, PADDING, LINE = 50, 25, 30
     MARGINF, PADDINGF, LINEF = map(float, (MARGIN, PADDING, LINE))
@@ -147,11 +147,6 @@ def _gen_shot(tweet_id):
                     raise ServerError(500, "Chart API error %d" % e.response.status_code)
                 # Otherwise text was probably just too wide
 
-            if mid == 1:
-                # If just one word, accept however long it might be
-                line_img = line
-                break
-
             # 600px wide, 25px margin
             if not line or images.Image(line).width > t_width - 2 * PADDING:
                 r = (r[0], mid)
@@ -164,7 +159,13 @@ def _gen_shot(tweet_id):
                 break
 
         if not line_img:
-            raise ServerError(500, "Failed to process tweet :/")
+            # If still couldn't generate the line, try splitting first word
+            # into two parts. (Here we don't try to find the optimum..)
+            s = len(words[0]) / 2
+            if not s:
+                raise ServerError(500, "Failed to process tweet :/")
+            words[0:1] = [words[0][:s], words[0][s:]]
+            continue
 
         # Now that we have a good line, let's see if we need to apply
         # some colors. This is freaking awful...
@@ -188,8 +189,7 @@ def _gen_shot(tweet_id):
                                     (part, offset, 0, 1., images.TOP_LEFT)]
 
             # Re-compose line
-            tmp = images.Image(line_img)
-            line_img = images.composite(composition, tmp.width, tmp.height)
+            line_img = images.composite(composition, t_width - PADDING, LINE, 0xffffffff)
 
         line_imgs.append(line_img)
 
