@@ -2,6 +2,7 @@ import datetime
 from itertools import groupby
 import logging
 import os
+from random import randint
 import re
 from urllib2 import quote
 
@@ -263,16 +264,17 @@ def _gen_shot(tweet_id):
 
     components = []
 
-    bg_rs = bg_rpc and bg_rpc.get_result()
-    if bg_rs:
-        if bg_rs.status_code == 200:
-            bg_img = images.Image(bg_rs.content)
-            components += [(bg_rs.content, x, y, 1., images.TOP_LEFT)
-                           for x in range(0, width, bg_img.width)
-                           for y in range(0, height, bg_img.height)]
-        else:
-            logging.warning("Background download failed %d: %r"
-                            % (bg_rs.status_code, bg_rs.content))
+    if user.get('profile_use_background_image', False):
+        bg_rs = bg_rpc and bg_rpc.get_result()
+        if bg_rs:
+            if bg_rs.status_code == 200:
+                bg_img = images.Image(bg_rs.content)
+                components += [(bg_rs.content, x, y, 1., images.TOP_LEFT)
+                               for x in range(0, width, bg_img.width)
+                               for y in range(0, height, bg_img.height)]
+            else:
+                logging.warning("Background download failed %d: %r"
+                                % (bg_rs.status_code, bg_rs.content))
 
     # Then add tweet box and texts
 
@@ -322,14 +324,15 @@ def _gen_shot(tweet_id):
                          _corners(),
                          [])
 
-    # Would be nice to apply this, but composite doesn't merge pixels (it
-    # just overwrites with zero-alphas)
-#    bg_color = 0xff000000 + int(user.get('profile_background_color', '0'), 16)
+    # Would be nice if this applied for transparent background images as well,
+    # but images.composite doesn't merge pixels, it just overwrites with
+    # zero-alphas
+    bg_color = 0xff000000 + int(user.get('profile_background_color', '0'), 16)
 
     tweetshot = components.pop(0)
     while components:
         batch, components = components[:15], components[15:]
-        tweetshot = (images.composite([tweetshot] + batch, width, height),
+        tweetshot = (images.composite([tweetshot] + batch, width, height, bg_color),
                      0, 0, 1., images.TOP_LEFT)
 
     return tweetshot[0]
@@ -364,13 +367,7 @@ class TweetHandler(webapp.RequestHandler):
             try:
                 img = _gen_shot(int(tweet_id))
                 memcache.set(tweet_id, img, time=24 * 60 * 60)
-            except ChartAPIException, e:
-                logging.exception(e)
-                self.redirect('http://chart.apis.google.com/chart?'
-                               'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
-                               '&chf=bg,s,ffffff' % quote(e.message.encode('utf-8')))
-                return
-            except ServerError, e:
+            except (ServerError, ChartAPIException), e:
                 logging.exception(e)
                 self.redirect('http://chart.apis.google.com/chart?'
                                'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
@@ -389,12 +386,40 @@ class TweetHandler(webapp.RequestHandler):
         self.response.out.write(img)
 
 
+class RandomHandler(TweetHandler):
+    """Returns full tweet data as JSON from a random tweet of the latest 10'000
+    tweets."""
+    def get(self):
+        max_id = memcache.get('max-tweet')
+        if max_id is None:
+            # Returns unauthorized, stupid API
+#            tweets = _make_twitter_request('http://stream.twitter.com/1/statuses/firehose.json?count=1')
+            tweets_rs = _make_twitter_request('http://api.twitter.com/1/statuses/public_timeline.json?trim_user=1&include_entities=0&count=1')
+            if tweets_rs.status_code != 200:
+                self.error_msg(500, "Twitter API error")
+                return
+            max_id = simplejson.loads(tweets_rs.content)[0]['id']
+            memcache.set('max-tweet', max_id, time=10 * 60)
+
+        tweet = None
+        while tweet == None:
+            tweet_id = randint(max_id - 10000, max_id)
+            tweet_rs = _make_twitter_request('http://api.twitter.com/1/statuses/show/%d.json' % tweet_id)
+            if tweet_rs.status_code == 200:
+                tweet = tweet_rs.content
+
+        self.response.headers['Content-Type'] = 'text/javascript'
+        self.response.headers['Cache-Control'] = 'no-store'
+        self.response.out.write(tweet)
+
+
 def main():
     application = webapp.WSGIApplication([
           ('/(\d+)\.png', TweetHandler),
           ('/(\d+)-(\d+)\.png', TweetHandler),
           ('/auth/', AuthHandler),
           ('/callback/', CallbackHandler),
+          ('/random/', RandomHandler),
           ], debug=True)
     run_wsgi_app(application)
 

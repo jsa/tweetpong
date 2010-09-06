@@ -2,6 +2,7 @@
 	<head>
 		<title>Tweets as PNG | Tweetpong</title>
 		<style type="text/css">
+		form { margin: 50px 0 40px 0; }
 		p { max-width: 600px; }
 		span.status { display: block; height: 20px; }
 		</style>
@@ -9,7 +10,10 @@
 	<body>
 		<form action="#">
 			<p>
-				Enter tweet url:
+				<span class="status"></span>
+			</p>
+			<p>
+				<strong>Enter tweet url:</strong>
 				<input type="text" size="60" />
 				<input type="submit" value="Png"></input>
 				<br />
@@ -24,13 +28,13 @@
 				<input type="radio" name="width" id="w300" value="300" />
 				<label for="w300">300px</label>
 			</p>
-			<p>
-				<span class="status"></span>
-			</p>
 		</form>
+		<p>
+			<input type="button" value="Random" />
+		</p>
 		<p>Grab link: <a href="/23019320509.png" class="pong">http://tweetpong.appspot.com/23019320509.png</a></p>
 		<p>
-			<a href="http://twitter.com/turbofunctor/status/23019320509">
+			<a href="http://twitter.com/turbofunctor/statuses/23019320509">
 				<img src="http://tweetpong.appspot.com/23019320509.png" class="pong">
 			</a>
 		</p>
@@ -43,9 +47,18 @@
 			so it can handle quite a lot of traffic.
 		</p>
 		<p>
-			Here's a bookmarklet <a href="javascript:var l=document.location;if(/^http:\/\/twitter.com\/[^\/]+\/status\/\d+$/.exec(l)){document.location='http://tweetpong.appspot.com/?t='+l}else{alert('Not on a tweet page');}">Tweetpong</a>
+			Here's a bookmarklet <a href="javascript:var l=document.location;if(/^http:\/\/twitter.com\/[^\/]+\/status(es)?\/\d+$/.exec(l)){document.location='http://tweetpong.appspot.com/?t='+l}else{alert('Not on a tweet page');}">Tweetpong</a>
 			for easy png'ing. Drag it to your bookmarks bar and click on a tweet page,
 			it takes you here.
+		</p>
+		<p>
+			API is very simple:
+			<br />
+			<code>http://tweetpong.appspot.com/&lt;tweet id&gt;.png</code>
+			<br />or, with custom width<br />
+			<code>http://tweetpong.appspot.com/&lt;tweet id&gt;-&lt;width&gt;.png</code>
+			<br />
+			HTTP response <code>200</code> if ok, <code>304</code> or <code>500</code> on error.
 		</p>
 		<a href="http://github.com/jsa/tweetpong"><img style="position: absolute; top: 0; right: 0; border: 0;" src="http://s3.amazonaws.com/github/ribbons/forkme_right_white_ffffff.png" alt="Fork me on GitHub" /></a>
 		<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.min.js"></script>
@@ -55,7 +68,7 @@
 		form.submit(function() {
 			var status = $('span.status').empty(),
 				twitterUrl = $('[type=text]').val();
-			var match = /^.*\/(\d+)$/.exec(twitterUrl);
+			var match = /\/(\d+)$/.exec(twitterUrl);
 			if (match) {
 				var width = form.find('[name=width]:checked').val(),
 				    pngUrl = null;
@@ -71,11 +84,22 @@
 				$('a.pong').attr('href', pngUrl)
 				           .text(pngUrl);
 			} else {
-				status.text("Url has to be in format http://twitter.com/turbofunctor/status/23019320509");
+				status.text("Url has to be in format http://twitter.com/turbofunctor/statuses/23019320509");
 			}
 			return false;
 		});
 		$('[type=radio]').change(function() { form.submit(); });
+		$('[value=Random]').click(function() {
+			$.ajax({
+				url: '/random/',
+				dataType: 'json',
+				success: function(tweet) {
+					form.find('[type=text]').val('http://twitter.com/' + tweet.user.screen_name
+					                             + '/statuses/' + tweet.id);
+					form.submit();
+				}
+			});
+		});
 		var tweet = /\?t=([^&]+)/.exec(window.location.search);
 		if (tweet) {
 			$('[type=text]').val(tweet[1]);
