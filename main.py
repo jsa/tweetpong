@@ -86,7 +86,8 @@ def _gen_shot(tweet_id):
 
     user = tweet.get('user') or {}
     bg_rpc = prof_rpc = None
-    bg = user.get('profile_use_background_image', False) and user.get('profile_background_image_url', None)
+    bg = user.get('profile_use_background_image', False) \
+         and user.get('profile_background_image_url', None)
     if bg:
         bg_rpc = urlfetch.create_rpc()
         urlfetch.make_fetch_call(bg_rpc, bg)
@@ -105,8 +106,8 @@ def _gen_shot(tweet_id):
 
     def _tweet_line(text, color='000000'):
         return chart_img('http://chart.apis.google.com/chart?'
-                        'chst=d_text_outline&chld=%s|23|l|f7f7f7|_|%s'
-                        '&chf=bg,s,ffffff' % (color, quote(text)))
+                         'chst=d_text_outline&chld=%s|23|l|f7f7f7|_|%s'
+                         '&chf=bg,s,ffffff' % (color, quote(text)))
 
     MARGIN, PADDING, LINE = 50, 25, 30
     MARGINF, PADDINGF, LINEF = map(float, (MARGIN, PADDING, LINE))
@@ -366,11 +367,18 @@ class TweetHandler(webapp.RequestHandler):
             try:
                 img = _gen_shot(int(tweet_id))
                 memcache.set(tweet_id, img, time=24 * 60 * 60)
-            except (ServerError, ChartAPIException), e:
+            except (ServerError, ChartAPIException, images.BadImageError), e:
+                logging.warning(e, exc_info=1)
+                msg = "Tweetpong: %s" % (e.message or "Failed to process tweet")
+                self.redirect('http://chart.apis.google.com/chart?'
+                              'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
+                              '&chf=bg,s,ffffff' % quote(msg.encode('utf-8')))
+                return
+            except Exception, e:
                 logging.exception(e)
                 self.redirect('http://chart.apis.google.com/chart?'
-                               'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
-                               '&chf=bg,s,ffffff' % quote(e.message.encode('utf-8')))
+                              'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
+                              '&chf=bg,s,ffffff' % "Tweetpong: Failed to process tweet")
                 return
 
         if width:
