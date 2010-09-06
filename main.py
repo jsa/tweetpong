@@ -87,7 +87,9 @@ def _gen_shot(tweet_id):
         raise ServerError(404, "No tweet text")
 
     # Need to escape pipes for chart API
-    text = text.replace('|', u'¦')
+    text = reduce(lambda t, (p, s): t.replace(p, s),
+                  (('|', u'¦'), ('&gt;', '>'), ('&lt;', '<')),
+                  text)
 
     user = tweet.get('user') or {}
     bg_rpc = prof_rpc = None
