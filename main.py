@@ -386,8 +386,8 @@ class TweetHandler(webapp.RequestHandler):
 
 
 class RandomHandler(TweetHandler):
-    """Returns full tweet data as JSON from a random tweet of the latest 10'000
-    tweets."""
+    """Returns full tweet data as JSON from a random tweet of the one billion
+    latest tweets."""
     def get(self):
         max_id = memcache.get('max-tweet')
         if max_id is None:
@@ -402,7 +402,7 @@ class RandomHandler(TweetHandler):
 
         tweet = None
         while tweet == None:
-            tweet_id = randint(max_id - 10000, max_id)
+            tweet_id = randint(max_id - 10**9, max_id)
             tweet_rs = _make_twitter_request('http://api.twitter.com/1/statuses/show/%d.json' % tweet_id)
             if tweet_rs.status_code == 200:
                 tweet = tweet_rs.content
