@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import datetime
 from itertools import groupby
 import logging
@@ -84,6 +86,9 @@ def _gen_shot(tweet_id):
     if not text:
         raise ServerError(404, "No tweet text")
 
+    # Need to escape pipes for chart API
+    text = unicode(text).replace('|', '¦')
+
     user = tweet.get('user') or {}
     bg_rpc = prof_rpc = None
     bg = user.get('profile_use_background_image', False) \
@@ -135,7 +140,7 @@ def _gen_shot(tweet_id):
 
             line = None
             try:
-                line = _tweet_line(' '.join(words[0:mid]))
+                line = _tweet_line(' '.join(words[:mid]))
             except ChartAPIException, e:
                 logging.debug(e, exc_info=1)
                 if e.response.status_code != 400:
@@ -159,7 +164,7 @@ def _gen_shot(tweet_id):
                 break
 
         if not line_img:
-            raise ServerError(500, "Failed to process tweet")
+            raise ServerError(500, "Failed to process tweet :/")
 
         # Now that we have a good line, let's see if we need to apply
         # some colors. This is freaking awful...
@@ -369,7 +374,7 @@ class TweetHandler(webapp.RequestHandler):
                 memcache.set(tweet_id, img, time=24 * 60 * 60)
             except (ServerError, ChartAPIException, images.BadImageError), e:
                 logging.warning(e, exc_info=1)
-                msg = "Tweetpong: %s" % (e.message or "Failed to process tweet")
+                msg = "Tweetpong: %s" % (e.message or "Failed to process tweet :(")
                 self.redirect('http://chart.apis.google.com/chart?'
                               'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
                               '&chf=bg,s,ffffff' % quote(msg.encode('utf-8')))
@@ -378,7 +383,7 @@ class TweetHandler(webapp.RequestHandler):
                 logging.exception(e)
                 self.redirect('http://chart.apis.google.com/chart?'
                               'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
-                              '&chf=bg,s,ffffff' % "Tweetpong: Failed to process tweet")
+                              '&chf=bg,s,ffffff' % "Tweetpong: Failed to process tweet ):")
                 return
 
         if width:
