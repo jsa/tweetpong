@@ -2,12 +2,21 @@
 	<head>
 		<title>Tweets as PNG | Tweetpong</title>
 		<style type="text/css">
-		form { margin: 50px 0 40px 0; }
+		body { padding: 40px; }
+		form { margin: 20px 0 20px 0; }
 		p { max-width: 600px; }
-		span.status { display: block; height: 20px; }
+		span.status { display: block; height: 20px; color: green; }
 		</style>
 	</head>
 	<body>
+		<p>
+			With Tweetpong you can <strong>easily embed tweets in blogs
+			etc.</strong> It generates you a link to an image of a given tweet
+			and you can use the link directly wherever you want. (No need to
+			save the image somewhere else.) The service is open source and completely
+			free to use. It runs on <a href="http://code.google.com/appengine/">Google
+			infrastructure</a> so it can handle lots of load.
+		</p>
 		<form action="#">
 			<p>
 				<span class="status"></span>
@@ -41,10 +50,6 @@
 		<hr>
 		<p>
 			For feedback, bugs etc. <a href="http://twitter.com/turbofunctor">tweet me</a>.
-			You may use this service freely for embedding tweets everywhere where you can't or
-			don't want to use <a href="http://media.twitter.com/blackbird-pie/">Blackbird Pie</a>.
-			The service is running on <a href="http://code.google.com/appengine/">AppEngine</a>
-			so it can handle quite a lot of traffic.
 		</p>
 		<p>
 			Here's a bookmarklet <a href="javascript:var l=document.location;if(/^http:\/\/twitter.com\/[^\/]+\/status(es)?\/\d+$/.exec(l)){document.location='http://tweetpong.appspot.com/?t='+l}else{alert('Not on a tweet page');}">Tweetpong</a>
@@ -78,13 +83,13 @@
 					pngUrl = 'http://' + host + '/' + match[1] + '-' + width + '.png';
 				}
 				status.text("Loading...");
-				setTimeout(function() { status.empty() }, 1000);
-				$('img.pong').attr('src', pngUrl)
+				$('img.pong').one('load', function() { status.empty() })
+				             .attr('src', pngUrl)
 				             .parents('a').attr('href', twitterUrl);
 				$('a.pong').attr('href', pngUrl)
 				           .text(pngUrl);
 			} else {
-				status.text("Url has to be in format http://twitter.com/turbofunctor/statuses/23019320509");
+				status.html("Url has to be in format <code>http://twitter.com/turbofunctor/statuses/23019320509</code>");
 			}
 			return false;
 		});
