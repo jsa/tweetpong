@@ -86,9 +86,11 @@ def _gen_shot(tweet_id):
     if not text:
         raise ServerError(404, "No tweet text")
 
-    # Need to escape pipes for chart API
     text = reduce(lambda t, (p, s): t.replace(p, s),
-                  (('|', u'¦'), ('&gt;', '>'), ('&lt;', '<')),
+                   # Need to escape pipes for chart API
+                  (('|', u'\u05C0'),
+                   # Some manual “Twitter-JSON” unquoting
+                   ('&gt;', '>'), ('&lt;', '<')),
                   text)
 
     user = tweet.get('user') or {}
