@@ -31,4 +31,4 @@ For details, see [Nick's blog](http://blog.notdot.net/2010/02/Writing-a-twitter-
 
 ### TODO
 
-1. Binary split of long words (URLs, chinese). It does that now only on word level, not character.
+1. Optimize splitting of long words (URLs, chinese) with binary search. Binary splitting is currently done only on word level, not character.
