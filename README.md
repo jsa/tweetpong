@@ -28,3 +28,7 @@ You need to create a `secrets.py` like
 Then you should be all set...
 
 For details, see [Nick's blog](http://blog.notdot.net/2010/02/Writing-a-twitter-service-on-App-Engine).
+
+### TODO
+
+1. Binary split of long words (URLs, chinese). It does that now only on word level, not character.
