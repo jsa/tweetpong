@@ -56,8 +56,8 @@ def _make_twitter_request(url):
     client = oauth.TwitterClient(secrets.CONSUMER_KEY,
                                  secrets.CONSUMER_SECRET,
                                  'http://%s/callback/' % os.environ['SERVER_NAME'])
-
-    return client.make_request(url, token=secrets.CLIENT_TOKEN, secret=secrets.CLIENT_SECRET)
+    return client.make_request(url, token=secrets.CLIENT_TOKEN,
+                               secret=secrets.CLIENT_SECRET)
 
 def first(iterable, default=None):
     for i in iterable:
@@ -336,7 +336,7 @@ def _gen_shot(tweet_id):
     # Would be nice if this applied for transparent background images as well,
     # but images.composite doesn't merge pixels, it just overwrites with
     # zero-alphas
-    bg_color = 0xff000000 + int(user.get('profile_background_color', '0'), 16)
+    bg_color = 0xff000000 + int(user.get('profile_background_color') or '0', 16)
 
     tweetshot = components.pop(0)
     while components:
