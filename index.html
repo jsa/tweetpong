@@ -16,7 +16,7 @@
 			and you can use the link directly wherever you want. (No need to
 			save the image somewhere else.) The service is open source and completely
 			free to use. It runs on <a href="http://code.google.com/appengine/">Google
-			infrastructure</a> so it can handle heavy traffic.
+			AppEngine</a> so it can handle heavy traffic.
 		</p>
 		<form action="#">
 			<p>
@@ -53,7 +53,7 @@
 			For feedback, bugs etc. <a href="http://twitter.com/turbofunctor">tweet me</a>.
 		</p>
 		<p>
-			Here's a bookmarklet <a href="javascript:var l=document.location;if(/^http:\/\/twitter.com\/[^\/]+\/status(es)?\/\d+$/.exec(l)){document.location='http://tweetpong.appspot.com/?t='+l}else{alert('Not on a tweet page');}">Tweetpong</a>
+			Here's a bookmarklet <a href="javascript:/^http:\/\/twitter.com\/(#!\/)?[^\/]+\/status(es)?\/\d+$/.exec(location)?location='http://tweetpong.appspot.com/?t='+encodeURIComponent(location):alert('Not on a tweet page');">Tweetpong</a>
 			for easy png'ing. Drag it to your bookmarks bar and click on a tweet page,
 			it takes you here.
 		</p>
@@ -108,7 +108,7 @@
 		});
 		var tweet = /\?t=([^&]+)/.exec(window.location.search);
 		if (tweet) {
-			$('[type=text]').val(tweet[1]);
+			$('[type=text]').val(decodeURIComponent(tweet[1]));
 			form.submit();
 		} else {
 			var init = [
