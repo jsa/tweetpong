@@ -3,9 +3,9 @@ by the Github wiki's restrictions of what can be embedded there.
 
 But it works (if you see image here):
 
-![Some tweet](http://tweetpong.appspot.com/23019320509-500.png)
+![Some tweet](http://tweetpng.appspot.com/23019320509-500.png)
 
-See it in action at [http://tweetpong.appspot.com/](http://tweetpong.appspot.com/)
+See it in action at [http://tweetpng.appspot.com/](http://tweetpng.appspot.com/)
 
 Replace the id on the url with any tweet id and (if you're lucky) you'll get
 a nice png.
