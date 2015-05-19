@@ -5,7 +5,7 @@ But it works! (If you see a rendering below...)
 
 ![Some tweet](http://tweetpng.appspot.com/23019320509-500.png)
 
-See it in action at [http://tweetpng.appspot.com/](http://tweetpng.appspot.com/)
+See it in action at [tweetpng.appspot.com](http://tweetpng.appspot.com/)
 
 Replace the id on the url with any tweet id and (if you're lucky) you'll get
 a nice png.
