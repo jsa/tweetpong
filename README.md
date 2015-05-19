@@ -1,7 +1,7 @@
 I did this very quick and dirty hack to get tweets to png. Mainly motivated
 by the Github wiki's restrictions of what can be embedded there.
 
-But it works (if you see image here):
+But it works! (If you see a rendering below...)
 
 ![Some tweet](http://tweetpng.appspot.com/23019320509-500.png)
 
