@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import datetime
+from datetime import datetime, timedelta, tzinfo
 from itertools import groupby
+import json
 import logging
 import os
 from random import randint
@@ -10,24 +11,20 @@ from urllib2 import quote
 
 from google.appengine.api import images, memcache, urlfetch
 from google.appengine.ext import webapp
-from google.appengine.ext.webapp.util import run_wsgi_app
-
-from django.utils import simplejson
-from webob import _parse_date
 
 import oauth
 import secrets
 
 
 COLOR_WORDS = tuple((re.compile(pattern), color) for pattern, color in (
-    (r'https?://.+', '0000ff'),
-    (r'[#@].+', '0000ff'),
+    (r"https?://.+", "0000ff"),
+    (r"[#@].+", "0000ff"),
 ))
 
-class CTzinfo(datetime.tzinfo):
-    def utcoffset(self, dt): return datetime.timedelta(hours=-7)
-    def dst(self, dt): return datetime.timedelta(hours=-6)
-    def tzname(self, dt): return 'PDT'
+class CTzinfo(tzinfo):
+    def utcoffset(self, dt): return timedelta(hours=-7)
+    def dst(self, dt): return timedelta(hours=-6)
+    def tzname(self, dt): return "PDT"
 
 
 class ServerError(Exception):
@@ -55,7 +52,7 @@ def chart_img(url):
 def _make_twitter_request(url):
     client = oauth.TwitterClient(secrets.CONSUMER_KEY,
                                  secrets.CONSUMER_SECRET,
-                                 'http://%s/callback/' % os.environ['SERVER_NAME'])
+                                 "https://%s/callback/" % os.environ['SERVER_NAME'])
     return client.make_request(url, token=secrets.CLIENT_TOKEN,
                                secret=secrets.CLIENT_SECRET)
 
@@ -65,21 +62,23 @@ def first(iterable, default=None):
     return default
 
 def _gen_shot(tweet_id):
-    tweet_rs = _make_twitter_request('http://api.twitter.com/1/statuses/show/%d.json' % tweet_id)
+    tweet_rs = _make_twitter_request(
+        "https://api.twitter.com/1.1/statuses/show/%d.json" % tweet_id)
+
     if tweet_rs.status_code != 200:
         rs = {}
         try:
-            rs = simplejson.loads(tweet_rs.content)
+            rs = json.loads(tweet_rs.content)
         except Exception, e:
             logging.exception(e)
-        raise ServerError(500, "Twitter API error %d: %s"
-                               % (tweet_rs.status_code, rs.get('error', '-')))
+        raise ServerError(500, "Twitter API error %d: %r"
+                               % (tweet_rs.status_code, rs))
 
     # Twitter API encodes utf-8
     assert 'utf-8' in tweet_rs.headers['Content-Type']
 
     # Parse tweet
-    tweet = simplejson.loads(tweet_rs.content)
+    tweet = json.loads(tweet_rs.content)
     logging.debug("Got data: %r" % tweet)
 
     text = tweet.get('text')
@@ -88,9 +87,9 @@ def _gen_shot(tweet_id):
 
     text = reduce(lambda t, (p, s): t.replace(p, s),
                    # Need to escape pipes for chart API
-                  (('|', u'\u05C0'),
+                  (("|", u"\u05C0"),
                    # Some manual “Twitter-JSON” unquoting
-                   ('&gt;', '>'), ('&lt;', '<')),
+                   ("&gt;", ">"), ("&lt;", "<")),
                   text)
 
     user = tweet.get('user') or {}
@@ -113,22 +112,23 @@ def _gen_shot(tweet_id):
     # Generate Google chart text boxes for all text, one for each line
     # (I want to adjust the line height)
 
-    def _tweet_line(text, color='000000'):
-        return chart_img('http://chart.apis.google.com/chart?'
-                         'chst=d_text_outline&chld=%s|23|l|f7f7f7|_|%s'
-                         '&chf=bg,s,ffffff' % (color, quote(text.encode('utf-8'))))
+    def _tweet_line(text, color="000000"):
+        return chart_img("http://chart.apis.google.com/chart?"
+                         "chst=d_text_outline&chld=%s|23|l|f7f7f7|_|%s"
+                         "&chf=bg,s,ffffff"
+                         % (color, quote(text.encode('utf-8'))))
 
     MARGIN, PADDING, LINE = 50, 25, 30
     MARGINF, PADDINGF, LINEF = map(float, (MARGIN, PADDING, LINE))
 
     # Load background image to get dimensions
 
-    tmpl_data = open('tweet-bg.png', 'rb').read()
+    tmpl_data = open("tweet-bg.png", "rb").read()
     tmpl = images.Image(tmpl_data)
     t_width, t_height = tmpl.width, tmpl.height
 
     # This is just a white bar 4x30, to do fills
-    bar = open('bar.png', 'rb').read()
+    bar = open("bar.png", "rb").read()
 
     while words:
         logging.debug("Words left: %r" % words)
@@ -144,7 +144,7 @@ def _gen_shot(tweet_id):
 
             line = None
             try:
-                line = _tweet_line(' '.join(words[:mid]))
+                line = _tweet_line(" ".join(words[:mid]))
             except ChartAPIException, e:
                 logging.debug(e, exc_info=1)
                 if e.response.status_code != 400:
@@ -175,7 +175,7 @@ def _gen_shot(tweet_id):
         # some colors. This is freaking awful...
         colors = [(w, first((c for p, c in COLOR_WORDS if p.match(w))))
                   for w in words[:mid]]
-        colors = [(c, ' '.join(w for w, _c in part))
+        colors = [(c, " ".join(w for w, _c in part))
                    for c, part in groupby(colors, lambda (_w, c): c)]
         if len(colors) > 1 or colors[0][0]:
             offset = 0
@@ -184,7 +184,7 @@ def _gen_shot(tweet_id):
                 if color:
                     part = _tweet_line(part, color)
                     offset = 0
-                    before = ' '.join(part for c, part in colors[:i])
+                    before = " ".join(part for c, part in colors[:i])
                     if before:
                         offset = images.Image(_tweet_line(before)).width + 5
                     part_w = images.Image(part).width
@@ -201,39 +201,41 @@ def _gen_shot(tweet_id):
 
     # Generate date string
 
-    created = _parse_date(tweet['created_at']).astimezone(CTzinfo())
+    # Sun Jul 20 20:09:30 +0000 2014
+    created = datetime.strptime(tweet['created_at'], "%a %b %d %H:%M:%S +0000 %Y")
+    created.replace(tzinfo=CTzinfo())
     created = filter(lambda s: s,
-                     (created.strftime(fmt).lstrip('0')
-                      for fmt in ('%a %b', '%d', '%I:%M%p %Y', '%Z')))
-    created_str = ' '.join(created)
+                     (created.strftime(fmt).lstrip("0")
+                      for fmt in ("%a %b", "%d", "%I:%M%p %Y", "%Z")))
+    created_str = " ".join(created)
     source = tweet.get('source')
     if source:
         # Yea, can't re HTML but let's try
-        source = re.sub('<[^>]*>', '', source)
-        created_str += ' via %s' % source
+        source = re.sub(r"<[^>]*>", "", source)
+        created_str += " via %s" % source
     place = tweet.get('place')
     place = place and place.get('full_name')
     if place:
-        created_str += ' from %s' % place
+        created_str += " from %s" % place
     reply_to = tweet.get('in_reply_to_screen_name')
     if reply_to:
-        created_str += ' in reply to %s' % reply_to
+        created_str += " in reply to %s" % reply_to
 
     # Generate some more charts...
-    created = chart_img('http://chart.apis.google.com/chart?'
-                        'chst=d_text_outline&chld=a0a0a0|10|l|ffffff|_|%s'
-                        '&chf=bg,s,ffffff' % quote(created_str.encode('utf-8')))
+    created = chart_img("http://chart.apis.google.com/chart?"
+                        "chst=d_text_outline&chld=a0a0a0|10|l|ffffff|_|%s"
+                        "&chf=bg,s,ffffff" % quote(created_str.encode('utf-8')))
 
-    screen_name = user.get('screen_name', '')
-    screen_name_img = chart_img('http://chart.apis.google.com/chart?'
-                                'chst=d_text_outline&chld=0000ff|24|l|ffffff|_|%s'
-                                '&chf=bg,s,ffffff' % quote(screen_name.encode('utf-8')))
+    screen_name = user.get('screen_name', "")
+    screen_name_img = chart_img("http://chart.apis.google.com/chart?"
+                                "chst=d_text_outline&chld=0000ff|24|l|ffffff|_|%s"
+                                "&chf=bg,s,ffffff" % quote(screen_name.encode('utf-8')))
 
-    name, name_img = user.get('name', ''), None
+    name, name_img = user.get('name', ""), None
     if name and name != screen_name:
-        name_img = chart_img('http://chart.apis.google.com/chart?'
-                             'chst=d_text_outline&chld=000000|13|l|ffffff|_|%s'
-                             '&chf=bg,s,ffffff' % quote(name.encode('utf-8')))
+        name_img = chart_img("http://chart.apis.google.com/chart?"
+                             "chst=d_text_outline&chld=000000|13|l|ffffff|_|%s"
+                             "&chf=bg,s,ffffff" % quote(name.encode('utf-8')))
 
     # Start generating the actual tweetshot
 
@@ -317,7 +319,7 @@ def _gen_shot(tweet_id):
             logging.warning("Profile picture download failed %d: %r"
                             % (prof_rs.status_code, prof_rs.content))
 
-    pix = open('pix.png', 'rb').read()
+    pix = open("pix.png", "rb").read()
 
     def _corners():
         yield (lambda x: MARGIN + x), (lambda y: MARGIN + y)
@@ -336,7 +338,7 @@ def _gen_shot(tweet_id):
     # Would be nice if this applied for transparent background images as well,
     # but images.composite doesn't merge pixels, it just overwrites with
     # zero-alphas
-    bg_color = 0xff000000 + int(user.get('profile_background_color') or '0', 16)
+    bg_color = 0xff000000 + int(user.get('profile_background_color') or "0", 16)
 
     tweetshot = components.pop(0)
     while components:
@@ -350,14 +352,14 @@ def _gen_shot(tweet_id):
 class AuthHandler(webapp.RequestHandler):
     def get(self):
         client = oauth.TwitterClient(secrets.CONSUMER_KEY, secrets.CONSUMER_SECRET,
-                                     'http://%s/callback/' % os.environ['SERVER_NAME'])
+                                     "https://%s/callback/" % os.environ['SERVER_NAME'])
         self.redirect(client.get_authorization_url())
 
 
 class CallbackHandler(webapp.RequestHandler):
     def get(self):
         client = oauth.TwitterClient(secrets.CONSUMER_KEY, secrets.CONSUMER_SECRET,
-                                     'http://%s/callback/' % os.environ['SERVER_NAME'])
+                                     "https://%s/callback/" % os.environ['SERVER_NAME'])
         auth_token = self.request.get('oauth_token')
         auth_verifier = self.request.get('oauth_verifier')
         user_info = client.get_user_info(auth_token, auth_verifier=auth_verifier)
@@ -383,22 +385,22 @@ class TweetHandler(webapp.RequestHandler):
             width = min(max(int(width), 300), images.Image(img).width)
             img = images.resize(img, width)
 
-        self.response.headers['Content-Type'] = 'image/png'
-        self.response.headers['Cache-Control'] = 'public, max-age=%d' % (24 * 60 * 60)
+        self.response.headers['Content-Type'] = "image/png"
+        self.response.headers['Cache-Control'] = "public, max-age=%d" % (24 * 60 * 60)
         self.response.out.write(img)
 
     def handle_exception(self, exc, debug_mode):
         if isinstance(exc, (ServerError, ChartAPIException, images.BadImageError)):
             logging.warning(exc, exc_info=1)
             msg = "Tweetpong: %s" % (exc.message or "Failed to process tweet :(")
-            self.redirect('http://chart.apis.google.com/chart?'
-                          'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
-                          '&chf=bg,s,ffffff' % quote(msg.encode('utf-8')))
+            self.redirect("http://chart.apis.google.com/chart?"
+                          "chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s"
+                          "&chf=bg,s,ffffff" % quote(msg.encode('utf-8')))
         else:
             logging.exception(exc)
-            self.redirect('http://chart.apis.google.com/chart?'
-                          'chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s'
-                          '&chf=bg,s,ffffff' % "Tweetpong: Failed to process tweet ):")
+            self.redirect("http://chart.apis.google.com/chart?"
+                          "chst=d_text_outline&chld=a00000|13|l|ffffff|_|%s"
+                          "&chf=bg,s,ffffff" % "Tweetpong: Failed to process tweet ):")
 
 
 class RandomHandler(TweetHandler):
@@ -408,35 +410,30 @@ class RandomHandler(TweetHandler):
         max_id = memcache.get('max-tweet')
         if max_id is None:
             # Returns unauthorized, stupid API
-#            tweets = _make_twitter_request('http://stream.twitter.com/1/statuses/firehose.json?count=1')
-            tweets_rs = _make_twitter_request('http://api.twitter.com/1/statuses/public_timeline.json?trim_user=1&include_entities=0&count=1')
+#            tweets = _make_twitter_request("https://stream.twitter.com/1/statuses/firehose.json?count=1")
+            tweets_rs = _make_twitter_request("https://api.twitter.com/1.1/statuses/public_timeline.json?trim_user=1&include_entities=0&count=1")
             if tweets_rs.status_code != 200:
                 self.error_msg(500, "Twitter API error")
                 return
-            max_id = simplejson.loads(tweets_rs.content)[0]['id']
+            max_id = json.loads(tweets_rs.content)[0]['id']
             memcache.set('max-tweet', max_id, time=10 * 60)
 
         tweet = None
         while tweet == None:
             tweet_id = randint(max_id - 10**9, max_id)
-            tweet_rs = _make_twitter_request('http://api.twitter.com/1/statuses/show/%d.json' % tweet_id)
+            tweet_rs = _make_twitter_request("https://api.twitter.com/1.1/statuses/show/%d.json" % tweet_id)
             if tweet_rs.status_code == 200:
                 tweet = tweet_rs.content
 
-        self.response.headers['Content-Type'] = 'text/javascript'
-        self.response.headers['Cache-Control'] = 'no-store'
+        self.response.headers['Content-Type'] = "text/javascript"
+        self.response.headers['Cache-Control'] = "no-store"
         self.response.out.write(tweet)
 
 
-def main():
-    application = webapp.WSGIApplication([
-          ('/(\d+)\.png', TweetHandler),
-          ('/(\d+)-(\d+)\.png', TweetHandler),
-          ('/auth/', AuthHandler),
-          ('/callback/', CallbackHandler),
-          ('/random/', RandomHandler),
-          ], debug=True)
-    run_wsgi_app(application)
-
-if __name__ == '__main__':
-    main()
+app = webapp.WSGIApplication([
+        (r"^/(\d+)\.png$", TweetHandler),
+        (r"^/(\d+)-(\d+)\.png$", TweetHandler),
+        (r"^/auth/$", AuthHandler),
+        (r"^/callback/$", CallbackHandler),
+        (r"^/random/$", RandomHandler),
+    ], debug=True)

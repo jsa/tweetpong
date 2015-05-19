@@ -42,13 +42,13 @@ A typical use case inside an AppEngine controller would be:
 @copyright: Unrestricted. Feel free to use modify however you see fit. Please
 note however this software is unsupported. Please don't email me about it. :)
 """
+import json
 
 from google.appengine.api import memcache
 from google.appengine.api import urlfetch
 from google.appengine.ext import db
 
 from cgi import parse_qs
-from django.utils import simplejson as json
 from hashlib import sha1
 from hmac import new as hmac
 from random import getrandbits

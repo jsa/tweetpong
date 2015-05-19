@@ -1,10 +1,9 @@
-application: tweetpong
-version: 24
-runtime: python
+application: tweetpng
+module: default
+version: 25
+runtime: python27
 api_version: 1
-
-derived_file_type:
-- python_precompiled
+threadsafe: true
 
 handlers:
 - url: /
@@ -16,15 +15,15 @@ handlers:
   upload: favicon.ico
 
 - url: .*
-  script: main.py
+  script: main.app
 
 error_handlers:
-  - file: error.png
-    mime_type: image/png
+- file: error.png
+  mime_type: image/png
 
-  - error_code: over_quota
-    file: overquota.png
-    mime_type: image/png
+- error_code: over_quota
+  file: overquota.png
+  mime_type: image/png
 
 skip_files: |
  ^(.*/)?(
